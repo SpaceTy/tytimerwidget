@@ -1,53 +1,33 @@
-## tytimer — Hyprland-friendly timer with tray and top-right alarm
+# tytimer — Hyprland-friendly timer (Rust/GTK4)
 
-Minimal CLI timer for Wayland/Hyprland:
-- runs in background with a system tray icon (Ayatana AppIndicator)
-- accepts decimal minutes
-- on expiry, shows a top-right anchored GUI window with Stop and Pause 1%/5%/10%
+Rust rewrite of the original Python script that keeps the Hyprland-friendly behavior (tray + anchored window) while daemonizing by default.
 
-### Dependencies (Arch / Hyprland)
+Features:
+- accepts decimal minutes; validates minutes > 0
+- daemonizes unless `--no-daemon` is passed
+- StatusNotifierItem (tray) with pause/resume + show alarm + quit
+- alarm window anchored top-right via gtk-layer-shell with Stop + Pause 1%/5%/10%
+- optional alarm sound: plays `/home/st/Videos/UA.mp4` via GStreamer (PipeWire/Pulse fallback)
 
-Install runtime deps:
+The original Python version lives in `tytimer.py` for reference.
 
-```bash
-sudo pacman -S python python-gobject libayatana-appindicator gtk-layer-shell gst-libav gst-plugins-good gst-plugin-pipewire
-```
+## Requirements
 
-If your theme lacks `alarm-symbolic`, install an icon theme like `adwaita-icon-theme`.
+- System GTK4, gtk-layer-shell, and GStreamer with a PipeWire or Pulse sink available
+- A bar/panel that supports SNI (e.g., Waybar) to see the tray icon
+- Rust toolchain with Cargo
 
-### Usage
-
-From this directory:
-
-```bash
-./tytimer.py 25       # starts 25-minute timer in background
-./tytimer.py 0.5      # starts 30 seconds
-./tytimer.py --no-daemon 10  # foreground (debug)
-```
-
-You should see a tray icon (StatusNotifierItem). When time is up, a large window appears at the top-right with buttons:
-- Stop: quit
-- Pause 1% / 5% / 10%: snooze based on original time
-- Plays sound from `/home/st/Videos/US.mp4` (ensure file exists)
-
-### Notes
-
-- The app uses `gtk-layer-shell` to anchor on Wayland, tested with Hyprland.
-- Tray visibility depends on your panel/status bar supporting SNI (e.g., Waybar with tray module).
-- Logging prints only on `--no-daemon`. In background, it’s silent.
-
-### Development
-Quick test that your GStreamer + PipeWire audio works:
+## Build
 
 ```bash
-gst-launch-1.0 audiotestsrc ! audioconvert ! audioresample ! pipewiresink
+cargo build --release
 ```
 
-
-Run in foreground with extra prints:
+## Run
 
 ```bash
-G_MESSAGES_DEBUG=all ./tytimer.py --no-daemon 0.1
+cargo run -- 25            # start a 25-minute timer in background
+cargo run -- --no-daemon 5 # foreground for debugging
 ```
 
-
+The alarm window is kept invisible until expiry; use the tray menu to reopen it if closed.
