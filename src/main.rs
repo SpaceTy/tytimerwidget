@@ -6,12 +6,13 @@ mod ui;
 use clap::Parser;
 use std::process;
 use gtk4::prelude::*;
+use gtk4::gio::ApplicationFlags;
 
 #[derive(Parser, Debug)]
 #[command(name = "tytimer", about = "Hyprland-friendly timer rewritten in Rust", version)]
 struct Args {
-    /// Timer length in minutes (decimals allowed)
-    minutes: f64,
+    /// Timer length in minutes (decimals allowed). If omitted, opens GUI to set duration.
+    minutes: Option<f64>,
     /// Run in foreground without daemonizing
     #[arg(long)]
     no_daemon: bool,
@@ -19,13 +20,21 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    if args.minutes <= 0.0 {
+
+    // Handle case where no minutes argument is provided
+    if args.minutes.is_none() {
+        run_setter_gui();
+        return;
+    }
+
+    let minutes = args.minutes.unwrap();
+    if minutes <= 0.0 {
         eprintln!("Minutes must be positive.");
         process::exit(2);
     }
 
     if !args.no_daemon {
-        match daemonize(args.minutes) {
+        match daemonize(minutes) {
             Ok(()) => {
                 println!("✅ Timer started in background.");
                 return;
@@ -41,9 +50,32 @@ fn main() {
         eprintln!("Failed to init GStreamer (sound will be disabled): {err}");
     }
 
-    let total_seconds = (args.minutes * 60.0).round().max(1.0) as i64;
+    let total_seconds = (minutes * 60.0).round().max(1.0) as i64;
+    run_timer(total_seconds);
+}
+
+fn run_setter_gui() {
+    if let Err(err) = gstreamer::init() {
+        eprintln!("Failed to init GStreamer (sound will be disabled): {err}");
+    }
+
+    let app = gtk4::Application::builder()
+        .application_id("dev.ty.timers.setter")
+        .flags(ApplicationFlags::NON_UNIQUE)
+        .build();
+
+    app.connect_activate(move |gtk_app| {
+        let setter = ui::SetterWindow::new(gtk_app);
+        setter.present();
+    });
+
+    app.run_with_args(&Vec::<&str>::new());
+}
+
+fn run_timer(total_seconds: i64) {
     let app = gtk4::Application::builder()
         .application_id("dev.ty.timers")
+        .flags(ApplicationFlags::NON_UNIQUE)
         .build();
 
     app.connect_activate(move |gtk_app| {
