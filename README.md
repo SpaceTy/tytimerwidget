@@ -9,7 +9,7 @@ Features:
 - supports multiple concurrent timer instances
 - StatusNotifierItem (tray) with pause/resume + show alarm + quit
 - alarm window anchored top-right via gtk-layer-shell with Stop + Pause 1%/5%/10%
-- optional alarm sound: plays `/home/st/Videos/UA.mp4` via GStreamer (PipeWire/Pulse fallback)
+- embedded alarm sound: plays UA.mp3 (embedded in binary) via GStreamer (PipeWire/Pulse fallback)
 
 The original Python version lives in `tytimer.py` for reference.
 
